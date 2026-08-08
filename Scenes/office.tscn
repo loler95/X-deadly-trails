@@ -2,8 +2,11 @@
 
 [ext_resource type="Script" uid="uid://3c7h06n6p4bh" path="res://Scenes/office.gd" id="1_a0wae"]
 [ext_resource type="Script" uid="uid://ds7gl07ye6kc" path="res://Scenes/camera.gd" id="2_llmbb"]
-[ext_resource type="Texture2D" uid="uid://efeddpf2jsx8" path="res://Sprites/Office/office_concept.png" id="3_cumm5"]
+[ext_resource type="Texture2D" uid="uid://d0ww7vd4fonw8" path="res://Sprites/Office/office_v1.png" id="3_2jlrf"]
 [ext_resource type="Script" uid="uid://dfq6c3uwa65lj" path="res://Scenes/map.gd" id="3_vggx3"]
+[ext_resource type="Script" uid="uid://dmp3r3a4cf6ii" path="res://Scenes/animatronics_manager.gd" id="5_2jlrf"]
+[ext_resource type="AudioStream" uid="uid://c52pjafknsj4t" path="res://Audio/2011xAtDoor.ogg" id="6_7xo7e"]
+[ext_resource type="AudioStream" uid="uid://ctunhllqxuywm" path="res://Audio/DoorKock.mp3" id="7_eqlnk"]
 
 [node name="Office" type="Node2D" unique_id=1954067994]
 script = ExtResource("1_a0wae")
@@ -30,17 +33,17 @@ text = "CAM
 
 [node name="LeftDoor" type="ColorRect" parent="World" unique_id=99081909]
 offset_left = -181.0
-offset_top = 150.0
+offset_top = 207.0
 offset_right = -30.0
-offset_bottom = 570.0
-color = Color(0, 0, 1, 1)
+offset_bottom = 627.0
+color = Color(0, 0, 0, 1)
 
 [node name="RightDoor" type="ColorRect" parent="World" unique_id=537386949]
-offset_left = 1300.0
-offset_top = 150.0
-offset_right = 1420.0
-offset_bottom = 570.0
-color = Color(0, 0, 1, 1)
+offset_left = 1319.0
+offset_top = 203.0
+offset_right = 1457.0
+offset_bottom = 623.0
+color = Color(0, 0, 0, 1)
 
 [node name="Camera" type="Camera2D" parent="World" unique_id=115573611]
 position = Vector2(640, 360)
@@ -51,21 +54,21 @@ offset_left = 90.0
 offset_top = 108.0
 offset_right = 300.0
 offset_bottom = 228.0
-color = Color(0, 0, 1, 1)
+color = Color(0, 0, 0, 1)
 
 [node name="Background" type="Sprite2D" parent="World" unique_id=768547807]
 show_behind_parent = true
-position = Vector2(647, 364)
-texture = ExtResource("3_cumm5")
+position = Vector2(647, 396.99997)
+scale = Vector2(1, 1.0911602)
+texture = ExtResource("3_2jlrf")
 
 [node name="CameraLayer" type="CanvasLayer" parent="." unique_id=1823405257]
 layer = 0
-visible = false
 
 [node name="CameraBackground" type="ColorRect" parent="CameraLayer" unique_id=1867516389]
 offset_right = 1280.0
 offset_bottom = 720.0
-color = Color(0.101960786, 0.16470589, 0.101960786, 1)
+color = Color(0, 0, 0, 1)
 
 [node name="Map" type="Node2D" parent="CameraLayer" unique_id=1268393583]
 script = ExtResource("3_vggx3")
@@ -75,7 +78,7 @@ offset_left = 917.0
 offset_top = 540.0
 offset_right = 1017.0
 offset_bottom = 590.0
-color = Color(0.24313726, 0.36078432, 0.24313726, 1)
+color = Color(0.2, 0.2, 0.2, 1)
 
 [node name="CAM1" type="Label" parent="CameraLayer/Map/Room1" unique_id=1672901023]
 layout_mode = 0
@@ -93,7 +96,7 @@ offset_left = 1149.0
 offset_top = 541.0
 offset_right = 1249.0
 offset_bottom = 591.0
-color = Color(0.24419704, 0.36037058, 0.24407429, 1)
+color = Color(0.2, 0.2, 0.2, 1)
 
 [node name="CAM2" type="Label" parent="CameraLayer/Map/Room2" unique_id=1993303702]
 layout_mode = 0
@@ -111,7 +114,7 @@ offset_left = 1031.0
 offset_top = 465.0
 offset_right = 1131.0
 offset_bottom = 515.0
-color = Color(0.24313726, 0.36078432, 0.24313726, 1)
+color = Color(0.2, 0.2, 0.2, 1)
 
 [node name="CAM3" type="Label" parent="CameraLayer/Map/Room3" unique_id=797401785]
 layout_mode = 0
@@ -129,7 +132,7 @@ offset_left = 911.0
 offset_top = 366.0
 offset_right = 1011.0
 offset_bottom = 416.0
-color = Color(0.24313726, 0.36078432, 0.24313726, 1)
+color = Color(0.20152658, 0.20152658, 0.20152658, 1)
 
 [node name="CAM4" type="Label" parent="CameraLayer/Map/Room4" unique_id=1274112744]
 layout_mode = 0
@@ -155,3 +158,15 @@ color = Color(1, 0, 0, 1)
 [node name="CharNMI" type="ColorRect" parent="CameraLayer/Map" unique_id=2147105842]
 offset_right = 40.0
 offset_bottom = 40.0
+
+[node name="AnimatronicsManager" type="Node" parent="." unique_id=265458840]
+script = ExtResource("5_2jlrf")
+
+[node name="AlertSound" type="AudioStreamPlayer2D" parent="." unique_id=77213053]
+position = Vector2(640, 360)
+stream = ExtResource("6_7xo7e")
+
+[node name="KnockSound" type="AudioStreamPlayer2D" parent="." unique_id=1344184197]
+position = Vector2(640, 360)
+stream = ExtResource("7_eqlnk")
+attenuation = 1e-05

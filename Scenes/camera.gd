@@ -3,11 +3,11 @@ extends Camera2D
 var max_offset := 320.0
 var current_offset := 0.0
 var target_offset := 0.0
-var sensitivity := 0.5   # регулируйте скорость
-var invert := false      # true – инвертированное управление
+var sensitivity := 0.5
+var invert := false
 
 func _ready():
-	# Курсор видим, но не выходит за пределы окна (решает проблему второго монитора)
+	# Ограничиваем курсор окном
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 func _input(event):
