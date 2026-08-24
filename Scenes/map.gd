@@ -5,10 +5,11 @@ var rooms = {}
 var selected_camera := 0
 
 func _ready():
+	# Ищем все дочерние узлы с именами, начинающимися с "Room"
 	for child in get_children():
 		if child.name.begins_with("Room"):
-			var id = int(child.name.substr(4))
-			if id > 0 and id <= 4:
+			var id = int(child.name.substr(4))  # извлекаем номер комнаты
+			if id > 0:   # принимаем любые номера (1,2,3,...)
 				rooms[id] = child
 				var button = child.get_node_or_null("ClickButton")
 				if button and button is Button:
@@ -31,19 +32,20 @@ func _update_positions():
 		if not room:
 			continue
 		
-		# Если персонаж в проёме (WAITING_AT_DOOR) – показываем с отладочным смещением
+		# Отображение персонажей в состоянии WAITING_AT_DOOR (проём)
 		if character.state == 2:  # CharState.WAITING_AT_DOOR
-			character.node.visible = true  # делаем видимым для отладки
+			character.node.visible = true  # видим для отладки
 			var center = room.position + room.size / 2
 			var base_pos = center - character.node.size / 2
-			# Смещение в зависимости от комнаты
+			# Смещение в зависимости от комнаты (только для защитных 1,2,3)
 			match character.room:
-				1:  # левая дверь – смещаем вправо (показывает, что он справа от двери)
+				1:  # левая дверь – смещаем вправо
 					base_pos += Vector2(60, 0)
 				2:  # правая дверь – смещаем влево
 					base_pos += Vector2(-60, 0)
 				3:  # вентиляция – смещаем вниз
 					base_pos += Vector2(0, 60)
+				# Если добавите новые защитные комнаты, пропишите смещения здесь
 			character.node.position = base_pos
 		else:
 			# Обычное отображение в центре комнаты
@@ -83,4 +85,4 @@ func clear_highlight():
 		rooms[id].modulate = Color(1, 1, 1)
 
 func _on_attack_detected(character_name, defense_type):
-	pass  # можно добавить индикатор, но пока не нужно
+	pass  # можно добавить визуальный эффект

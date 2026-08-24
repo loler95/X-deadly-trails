@@ -6,13 +6,16 @@ var characters = []
 
 # --- Маршруты ---
 var routes = {
-	1: [4],
-	2: [4],
-	3: [4],
-	4: [1, 2, 3]
+	1: [3],
+	2: [3],
+	3: [1, 2],
+	4: [],
+	5: [3, 6],
+	6: [5, 7],
+	7: [6]
 }
 
-# --- Соответствие комнат защите ---
+# --- Соответствие комнат защите (1,2,3) ---
 var defense_map = {
 	1: "left_door",
 	2: "right_door",
@@ -25,11 +28,14 @@ enum CharState { IDLE, AT_CAMERA, WAITING_AT_DOOR }
 var tick_timer := 0.0
 var tick_interval := 0.5
 var is_attacking := false
+var flashlight_active := false   # флаг: заморозить таймер MysticCrimson
 
+# Сигналы
 signal characters_updated()
 signal attack_detected(character_name: String, defense_type: String)
+signal myst_crimson_state_changed(room_id: int, state: int)
 
-func add_character(node, speed: int, start_room: int = 4, char_name: String = ""):
+func add_character(node, speed: int, start_room: int = 7, char_name: String = ""):
 	characters.append({
 		"node": node,
 		"room": start_room,
@@ -40,16 +46,30 @@ func add_character(node, speed: int, start_room: int = 4, char_name: String = ""
 		"wait_time": 0.0
 	})
 	emit_signal("characters_updated")
+	if char_name == "MystCrimson":
+		emit_signal("myst_crimson_state_changed", start_room, CharState.IDLE)
 
+func set_flashlight_active(active: bool):
+	flashlight_active = active
+
+func reset_myst_crimson_timer():
+	for character in characters:
+		if character.name == "MystCrimson" and character.state == CharState.WAITING_AT_DOOR:
+			character.timer = 0.0
+			print("MystCrimson timer reset")
+
+# ===== ОСНОВНОЙ ЦИКЛ =====
 func process_movement(delta):
 	if is_attacking:
 		return
 	
 	var office = get_node("/root/Office")
 	
-	# === Мгновенная проверка для WAITING_AT_DOOR ===
+	# === Мгновенная проверка для WAITING_AT_DOOR (закрытие двери) ===
 	if office:
 		for character in characters:
+			if character.name == "MystCrimson":
+				continue
 			if character.state == CharState.WAITING_AT_DOOR:
 				var def = defense_map.get(character.room)
 				if def:
@@ -59,7 +79,6 @@ func process_movement(delta):
 						"right_door": closed = office.right_door_closed
 						"vent":       closed = office.vent_closed
 					if closed:
-						# Стук
 						if office.has_method("play_knock"):
 							var pan = 0.0
 							match character.room:
@@ -68,15 +87,18 @@ func process_movement(delta):
 								3: pan = 0.0
 							office.play_knock(pan)
 						
-						character.room = 4
+						character.room = 7
 						character.state = CharState.IDLE
 						character.timer = 0.0
 						print(character.name, " immediately retreated because defense closed.")
 						emit_signal("characters_updated")
 	
-	# === Таймеры ===
+	# === Таймеры (AT_CAMERA и WAITING_AT_DOOR) ===
 	for character in characters:
 		if character.state == CharState.AT_CAMERA or character.state == CharState.WAITING_AT_DOOR:
+			# ★ Если это MysticCrimson и фонарик активен - замораживаем таймер ★
+			if character.name == "MystCrimson" and flashlight_active:
+				continue
 			character.timer += delta
 			if character.timer >= character.wait_time:
 				_on_state_timeout(character)
@@ -117,6 +139,9 @@ func _on_state_timeout(character):
 		print(character.name, " entered doorway, waiting ", character.wait_time, " sec")
 		emit_signal("characters_updated")
 		
+		if character.name == "MystCrimson":
+			emit_signal("myst_crimson_state_changed", character.room, character.state)
+		
 		if character.name == "2011x" and office.has_method("play_alert"):
 			var pan = 0.0
 			match character.room:
@@ -133,13 +158,19 @@ func _on_state_timeout(character):
 			"vent":       closed = office.vent_closed
 		
 		if closed:
-			character.room = 4
-			character.state = CharState.IDLE
-			character.timer = 0.0
-			print(character.name, " retreated because defense closed (timeout check).")
-			emit_signal("characters_updated")
-			return
+			if character.name == "MystCrimson":
+				character.timer = 0.0
+				print("MystCrimson remains at doorway despite closed door (needs flashlight)")
+				return
+			else:
+				character.room = 7
+				character.state = CharState.IDLE
+				character.timer = 0.0
+				print(character.name, " retreated because defense closed (timeout check).")
+				emit_signal("characters_updated")
+				return
 		
+		# Атака
 		is_attacking = true
 		print("WARNING: ", character.name, " attacks through ", def, " after waiting!")
 		emit_signal("attack_detected", character.name, def)
@@ -153,14 +184,59 @@ func _try_move_all():
 		if roll <= character.speed:
 			var current = character.room
 			var possible = routes[current]
+			if possible.is_empty():
+				print("WARNING: Room ", current, " has no routes, skipping")
+				continue
 			var next_room = possible[randi() % possible.size()]
 			character.room = next_room
 			print(character.name, " moved from ", current, " to ", next_room)
 			
 			if next_room in defense_map:
-				character.state = CharState.AT_CAMERA
-				character.timer = 0.0
-				character.wait_time = 4.5
-				print(character.name, " arrived at camera room ", next_room, ", waiting 4.5 sec")
+				if next_room == 3:
+					if randf() < 0.5:
+						character.state = CharState.AT_CAMERA
+						character.timer = 0.0
+						character.wait_time = 4.5
+						print(character.name, " arrived at vent room (3), waiting 4.5 sec")
+					else:
+						print(character.name, " passed through vent room, continuing to doors")
+				else:
+					character.state = CharState.AT_CAMERA
+					character.timer = 0.0
+					character.wait_time = 4.5
+					print(character.name, " arrived at camera room ", next_room, ", waiting 4.5 sec")
+				
+				if character.name == "MystCrimson":
+					emit_signal("myst_crimson_state_changed", character.room, character.state)
 	
 	emit_signal("characters_updated")
+
+func flashlight_check():
+	var office = get_node("/root/Office")
+	if not office:
+		return
+	for character in characters:
+		if character.name == "MystCrimson" and character.state == CharState.WAITING_AT_DOOR:
+			character.room = 7
+			character.state = CharState.IDLE
+			character.timer = 0.0
+			flashlight_active = false
+			emit_signal("characters_updated")
+			emit_signal("myst_crimson_state_changed", character.room, character.state)
+			print("MystCrimson retreated due to flashlight!")
+			break
+
+func get_myst_crimson_zone() -> String:
+	for character in characters:
+		if character.name == "MystCrimson" and character.state == CharState.WAITING_AT_DOOR:
+			match character.room:
+				1: return "LeftDoorZone"
+				2: return "RightDoorZone"
+				3: return "VentZone"
+	return ""
+
+func get_myst_crimson_wait_time() -> float:
+	for character in characters:
+		if character.name == "MystCrimson" and character.state == CharState.WAITING_AT_DOOR:
+			return character.wait_time
+	return 0.0
