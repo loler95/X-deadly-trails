@@ -12,8 +12,16 @@ var camera_mode := false
 var camera_power_drain := 0.1
 
 var is_game_over := false
-var flashlight_on := false
-var flashlight_timer := 0.0
+var game_won := false
+
+# --- Время ночи ---
+var night_duration := 360.0  # 6 минут в секундах (можно уменьшить для теста)
+var time_passed := 0.0
+var start_hour := 12  # 12:00 AM
+
+# --- Менеджеры ---
+@onready var flashlight_manager = get_node("FlashlightManager")
+@onready var animatronic_manager: AnimatronicsManager = $AnimatronicsManager
 
 # ===== ССЫЛКИ НА УЗЛЫ =====
 @onready var power_label: Label = $UI/PowerLabel
@@ -22,24 +30,17 @@ var flashlight_timer := 0.0
 @onready var vent: ColorRect = $World/Vent
 @onready var camera_layer: CanvasLayer = $CameraLayer
 @onready var camera_button: Button = $UI/CameraButton
-@onready var manager: AnimatronicsManager = $AnimatronicsManager
-
+@onready var time_label: Label = $UI/TimeLabel
 @onready var left_door_sprite: Sprite2D = $LeftDoorSprite
 @onready var right_door_sprite: Sprite2D = $RightDoorSprite
 @onready var vent_sprite: Sprite2D = $VentSprite
 
-# Узлы фонарика
-@onready var flashlight_area: Area2D = $FlashlightArea
-@onready var flashlight_collision: CollisionShape2D = $FlashlightArea/CollisionShape2D
-
 # Звуки
 @onready var alert_sound: AudioStreamPlayer2D = $AlertSound if has_node("AlertSound") else null
 @onready var knock_sound: AudioStreamPlayer2D = $KnockSound if has_node("KnockSound") else null
-@onready var flashlight_sound: AudioStreamPlayer2D = $FlashlightSound if has_node("FlashlightSound") else null
-@onready var flashlight_sprite: Sprite2D = $FlashlightSprite if has_node("FlashlightSprite") else null
 
 var audio_listener: AudioListener2D
-var current_target_area: Area2D = null
+
 
 # ===== ИНИЦИАЛИЗАЦИЯ =====
 func _ready() -> void:
@@ -52,34 +53,16 @@ func _ready() -> void:
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 	
+	# --- Инициализация времени ---
+	time_passed = 0.0
+	_update_time_label()
+	
 	# --- AudioListener2D ---
 	audio_listener = AudioListener2D.new()
 	audio_listener.name = "AudioListener2D"
 	add_child(audio_listener)
 	var center = get_viewport().size / 2
 	audio_listener.position = center
-	
-	# --- Создаём спрайт фонарика, если нет ---
-	if not flashlight_sprite:
-		flashlight_sprite = Sprite2D.new()
-		flashlight_sprite.name = "FlashlightSprite"
-		var image = Image.create(200, 200, false, Image.FORMAT_RGBA8)
-		image.fill(Color(0, 0, 0, 0))
-		for x in 200:
-			for y in 200:
-				var dist = Vector2(x, y).distance_to(Vector2(100, 100))
-				if dist < 100:
-					var alpha = 1.0 - (dist / 100.0)
-					image.set_pixel(x, y, Color(1, 0.9, 0.6, alpha * 0.5))
-		flashlight_sprite.texture = ImageTexture.create_from_image(image)
-		flashlight_sprite.centered = true
-		add_child(flashlight_sprite)
-	flashlight_sprite.modulate.a = 0
-	
-	# --- Настройка коллижн-бокса фонарика (исправлено) ---
-	flashlight_collision.disabled = true   # <-- правильно
-	flashlight_area.area_entered.connect(_on_flashlight_area_entered)
-	flashlight_area.area_exited.connect(_on_flashlight_area_exited)
 	
 	# --- Кнопка камер ---
 	camera_button.mouse_entered.connect(_toggle_camera_mode)
@@ -96,112 +79,93 @@ func _ready() -> void:
 	
 	# --- Добавление персонажей ---
 	var map = $CameraLayer/Map
-	if map and manager:
+	if map and animatronic_manager:
 		var char1 = map.get_node_or_null("Char2011x")
 		var char2 = map.get_node_or_null("CharMyst")
-		var char3 = map.get_node_or_null("CharNMI")
-		if char1: manager.add_character(char1, 8, 7, "2011x")
-		if char2: manager.add_character(char2, 5, 7, "MystCrimson")
-		if char3: manager.add_character(char3, 3, 7, "NMI")
-		manager.attack_detected.connect(_on_attack_detected)
-		manager.myst_crimson_state_changed.connect(_on_myst_state_changed)
+		var char3 = map.get_node_or_null("CharImperfect")
+		if char1: animatronic_manager.add_character(char1, 8, 7, "2011x")
+		if char2: animatronic_manager.add_character(char2, 5, 7, "MystCrimson")
+		if char3: animatronic_manager.add_character(char3, 3, 7, "Imperfect")
+		animatronic_manager.attack_detected.connect(_on_attack_detected)
+		animatronic_manager.myst_crimson_state_changed.connect(_on_myst_state_changed)
 	else:
 		push_error("Map or AnimatronicsManager not found!")
 
-# ===== КОЛЛИЖН-БОКС ФОНАРИКА =====
-func _on_flashlight_area_entered(area: Area2D):
-	print("Area entered: ", area.name, " parent: ", area.get_parent().name)
-	if not flashlight_on or is_game_over:
-		return
-	if area.name == "CollisionArea":
-		current_target_area = area
-		manager.set_flashlight_active(true)
-		manager.reset_myst_crimson_timer()
-		print("Flashlight hit MysticCrimson area")
 
-func _on_flashlight_area_exited(area: Area2D):
-	if area == current_target_area:
-		current_target_area = null
-		flashlight_timer = 0.0
-		manager.set_flashlight_active(false)
-		print("Flashlight left MysticCrimson area")
 
 # ===== ОСНОВНОЙ ЦИКЛ =====
 func _process(delta: float) -> void:
+	
+	# --- Если игра окончена или выиграна, не обновляем ---
+	if is_game_over or game_won:
+		return
+		
 	# --- Энергия ---
 	var drain = power_drain
 	if left_door_closed: drain += 0.25
 	if right_door_closed: drain += 0.25
 	if vent_closed: drain += 0.15
 	if camera_mode: drain += camera_power_drain
-	if flashlight_on: drain += 0.1
+	if flashlight_manager.flashlight_on: drain += 0.1
 	
 	power = max(power - drain * delta, 0.0)
 	power_label.text = "Power: %d%%" % int(power)
 	
-	# --- Управление фонариком ---
-	var ctrl_pressed = Input.is_key_pressed(KEY_CTRL)
-	if ctrl_pressed and not flashlight_on and not is_game_over:
-		_turn_on_flashlight()
-	elif not ctrl_pressed and flashlight_on:
-		_turn_off_flashlight()
+	# --- Время ---
+	time_passed += delta
+	_update_time_label()
 	
-	# --- Обновление позиции фонарика и коллижн-бокса ---
-	if flashlight_on:
-		var mouse_pos = get_global_mouse_position()
-		flashlight_sprite.global_position = mouse_pos
-		flashlight_area.global_position = mouse_pos
-		flashlight_collision.disabled = false   # <-- включаем
-		print("Flashlight pos: ", flashlight_area.global_position)
-	else:
-		flashlight_collision.disabled = true    # <-- выключаем
-		flashlight_timer = 0.0
-		manager.set_flashlight_active(false)
-	
-	# --- Накопление времени, если светим на проём ---
-	if flashlight_on and current_target_area and manager and not is_game_over:
-		var required_time = manager.get_myst_crimson_wait_time()
-		if required_time > 0:
-			flashlight_timer += delta
-			print("Flashlight timer: ", flashlight_timer, " / ", required_time)
-			if flashlight_timer >= required_time:
-				manager.flashlight_check()
-				flashlight_timer = 0.0
-				current_target_area = null
-				manager.set_flashlight_active(false)
-				print("MystCrimson banished!")
-		else:
-			flashlight_timer = 0.0
+	# --- Проверка победы ---
+	if time_passed >= night_duration:
+		win_game()
+		return
 	
 	# --- Движение аниматроников ---
-	if manager and not is_game_over:
-		manager.process_movement(delta)
+	if animatronic_manager and not is_game_over:
+		animatronic_manager.process_movement(delta)
 
+# ===== ОБНОВЛЕНИЕ ЧАСОВ =====
+func _update_time_label():
+	var t# Прогресс ночи (от 0 до 1)
+	var progress = time_passed / night_duration
+	# Игровые минуты: 0..360 (6 часов)
+	var game_minutes = progress * 360.0
+	# Часы (12 + количество полных часов)
+	var hours = 12 + int(game_minutes / 60)
+	var minutes = int(game_minutes) % 60
+	# Корректируем отображение: 12, 1, 2, 3, 4, 5, 6
+	var display_hours = hours if hours <= 12 else hours - 12
+	# Если display_hours == 0 (не может случиться, но на всякий случай)
+	if display_hours == 0:
+		display_hours = 12
+	var time_string = "%02d:%02d" % [display_hours, minutes]
+	time_label.text = time_string
 
-
-# ===== ФОНАРИК =====
-func _turn_on_flashlight():
-	flashlight_on = true
-	flashlight_sprite.modulate.a = 1.0
-	if flashlight_sound and flashlight_sound.stream:
-		flashlight_sound.play()
-	print("Flashlight ON")
-
-func _turn_off_flashlight():
-	flashlight_on = false
-	flashlight_sprite.modulate.a = 0
-	flashlight_collision.disabled = true   # <-- выключаем
-	flashlight_timer = 0.0
-	current_target_area = null
-	manager.set_flashlight_active(false)
-	if flashlight_sound and flashlight_sound.stream:
-		flashlight_sound.play()
-	print("Flashlight OFF")
+# ===== ВЫИГРЫШ =====
+func win_game() -> void:
+	if game_won or is_game_over:
+		return
+	game_won = true
+	print("YOU WIN!")
+	var path = "res://Scenes/WinScreen.tscn"
+	var tree = get_tree()
+	if tree:
+		tree.call_deferred("change_scene_to_file", path)
+	else:
+		var main_loop = Engine.get_main_loop()
+		if main_loop and main_loop.has_method("change_scene_to_file"):
+			main_loop.call_deferred("change_scene_to_file", path)
 
 # ===== СПРАЙТ MYSTIC CRIMSON =====
 func _on_myst_state_changed(room_id: int, state: int):
 	var show_sprite = (state == 2)  # WAITING_AT_DOOR
 	var sprite: Sprite2D = null
+	
+	# сбрасываем остальные спрайты
+	left_door_sprite.modulate.a = 0.0
+	right_door_sprite.modulate.a = 0.0
+	vent_sprite.modulate.a = 0.0
+	
 	match room_id:
 		1: sprite = left_door_sprite
 		2: sprite = right_door_sprite
@@ -219,7 +183,7 @@ func _on_myst_state_changed(room_id: int, state: int):
 
 # ===== КЛАВИШИ =====
 func _input(event: InputEvent) -> void:
-	if is_game_over:
+	if is_game_over or game_won:
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
@@ -285,7 +249,7 @@ func play_knock(pan: float):
 
 # ===== GAME OVER =====
 func _on_attack_detected(character_name: String, defense_type: String) -> void:
-	if is_game_over:
+	if is_game_over or game_won:
 		return
 	is_game_over = true
 	print("GAME OVER! ", character_name, " attacked through ", defense_type)

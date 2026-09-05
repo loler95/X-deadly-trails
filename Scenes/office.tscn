@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://3c7h06n6p4bh" path="res://Scenes/office.gd" id="1_a0wae"]
 [ext_resource type="Script" uid="uid://ds7gl07ye6kc" path="res://Scenes/camera.gd" id="2_llmbb"]
+[ext_resource type="Script" uid="uid://cy8gb2fkv26mq" path="res://Scenes/scripts/flashlight_manager.gd" id="2_o2cca"]
 [ext_resource type="Texture2D" uid="uid://bvic4snda1cha" path="res://Sprites/Office/five_nights_at_freddy_s_flashlight_color_gradient_flash_light_81cb740d1ccd6aac378a1bac1b74d0f7_negate.png" id="2_o84nh"]
 [ext_resource type="Script" uid="uid://dfq6c3uwa65lj" path="res://Scenes/map.gd" id="3_vggx3"]
 [ext_resource type="Texture2D" uid="uid://c3x35v8fpxyed" path="res://Sprites/Office/office_v2.png" id="4_2vylc"]
@@ -23,6 +24,12 @@ size = Vector2(200, 312)
 
 [node name="Office" type="Node2D" unique_id=1954067994]
 script = ExtResource("1_a0wae")
+
+[node name="FlashlightManager" type="Node2D" parent="." unique_id=1068119719]
+script = ExtResource("2_o2cca")
+
+[node name="AnimatronicsManager" type="Node" parent="." unique_id=265458840]
+script = ExtResource("5_2jlrf")
 
 [node name="FlashlightSprite" type="Sprite2D" parent="." unique_id=345603009]
 modulate = Color(18.892157, 18.892157, 18.892157, 0)
@@ -46,6 +53,12 @@ offset_bottom = 721.0
 theme_override_font_sizes/font_size = 24
 text = "CAM 
 "
+
+[node name="TimeLabel" type="Label" parent="UI" unique_id=1818379052]
+offset_left = 1127.0
+offset_right = 1281.0
+offset_bottom = 83.0
+theme_override_font_sizes/font_size = 50
 
 [node name="World" type="Node2D" parent="." unique_id=73900254]
 
@@ -253,12 +266,10 @@ offset_right = 40.0
 offset_bottom = 40.0
 color = Color(1, 0, 0, 1)
 
-[node name="CharNMI" type="ColorRect" parent="CameraLayer/Map" unique_id=2147105842]
+[node name="CharImperfect" type="ColorRect" parent="CameraLayer/Map" unique_id=2147105842]
 offset_right = 40.0
 offset_bottom = 40.0
-
-[node name="AnimatronicsManager" type="Node" parent="." unique_id=265458840]
-script = ExtResource("5_2jlrf")
+color = Color(0, 0, 0, 1)
 
 [node name="AlertSound" type="AudioStreamPlayer2D" parent="." unique_id=77213053]
 position = Vector2(640, 360)
@@ -286,29 +297,29 @@ shape = SubResource("RectangleShape2D_rs1ao")
 
 [node name="VentSprite" type="Sprite2D" parent="." unique_id=1950219957]
 modulate = Color(1, 1, 1, 0)
-position = Vector2(185, 170)
+position = Vector2(184.99997, 170)
 scale = Vector2(0.780303, 0.3611111)
 texture = ExtResource("12_v47wj")
 
 [node name="VentZone" type="Area2D" parent="VentSprite" unique_id=228485333]
-position = Vector2(26.912628, 0)
+position = Vector2(26.912659, 0)
 scale = Vector2(1.2815533, 2.7692308)
 collision_layer = 3
 collision_mask = 3
 
 [node name="VentZone" type="CollisionShape2D" parent="VentSprite/VentZone" unique_id=931719269]
-position = Vector2(-7.390976e-06, 1)
+position = Vector2(-10.000009, 9)
 shape = SubResource("RectangleShape2D_cvcyg")
 
 [node name="RightDoorSprite" type="Sprite2D" parent="." unique_id=1440980518]
 modulate = Color(1, 1, 1, 0)
 position = Vector2(1394, 484)
-scale = Vector2(0.33499992, 0.4480057)
+scale = Vector2(0.33499992, 0.44800574)
 texture = ExtResource("11_o2cca")
 
 [node name="RightDoorZone" type="Area2D" parent="RightDoorSprite" unique_id=1912356188]
-position = Vector2(26.865723, 64.7312)
-scale = Vector2(2.985075, 2.232114)
+position = Vector2(26.865723, 64.73108)
+scale = Vector2(2.985075, 2.2321138)
 collision_layer = 3
 collision_mask = 3
 
@@ -326,3 +337,5 @@ collision_mask = 3
 [node name="CollisionShape2D" type="CollisionShape2D" parent="FlashlightArea" unique_id=1673310047]
 scale = Vector2(10, 10)
 shape = SubResource("CircleShape2D_8kiwm")
+
+[connection signal="area_entered" from="FlashlightArea" to="FlashlightManager" method="_on_flashlight_area_area_entered"]

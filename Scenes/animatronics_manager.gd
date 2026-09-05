@@ -1,6 +1,9 @@
 class_name AnimatronicsManager
 extends Node
 
+# --- Менеджеры ---
+@onready var flashlight_manager = get_parent().get_node("FlashlightManager")
+
 # --- Данные персонажей ---
 var characters = []
 
@@ -10,8 +13,8 @@ var routes = {
 	2: [3],
 	3: [1, 2],
 	4: [],
-	5: [3, 6],
-	6: [5, 7],
+	5: [3],#, 6],
+	6: [5],#, 7],
 	7: [6]
 }
 
@@ -28,7 +31,6 @@ enum CharState { IDLE, AT_CAMERA, WAITING_AT_DOOR }
 var tick_timer := 0.0
 var tick_interval := 0.5
 var is_attacking := false
-var flashlight_active := false   # флаг: заморозить таймер MysticCrimson
 
 # Сигналы
 signal characters_updated()
@@ -48,15 +50,6 @@ func add_character(node, speed: int, start_room: int = 7, char_name: String = ""
 	emit_signal("characters_updated")
 	if char_name == "MystCrimson":
 		emit_signal("myst_crimson_state_changed", start_room, CharState.IDLE)
-
-func set_flashlight_active(active: bool):
-	flashlight_active = active
-
-func reset_myst_crimson_timer():
-	for character in characters:
-		if character.name == "MystCrimson" and character.state == CharState.WAITING_AT_DOOR:
-			character.timer = 0.0
-			print("MystCrimson timer reset")
 
 # ===== ОСНОВНОЙ ЦИКЛ =====
 func process_movement(delta):
@@ -97,7 +90,7 @@ func process_movement(delta):
 	for character in characters:
 		if character.state == CharState.AT_CAMERA or character.state == CharState.WAITING_AT_DOOR:
 			# ★ Если это MysticCrimson и фонарик активен - замораживаем таймер ★
-			if character.name == "MystCrimson" and flashlight_active:
+			if character.name == "MystCrimson" and flashlight_manager.flashlight_on:
 				continue
 			character.timer += delta
 			if character.timer >= character.wait_time:
@@ -210,7 +203,7 @@ func _try_move_all():
 					emit_signal("myst_crimson_state_changed", character.room, character.state)
 	
 	emit_signal("characters_updated")
-
+	
 func flashlight_check():
 	var office = get_node("/root/Office")
 	if not office:
@@ -220,12 +213,22 @@ func flashlight_check():
 			character.room = 7
 			character.state = CharState.IDLE
 			character.timer = 0.0
-			flashlight_active = false
 			emit_signal("characters_updated")
 			emit_signal("myst_crimson_state_changed", character.room, character.state)
 			print("MystCrimson retreated due to flashlight!")
 			break
-
+			
+func gtfo_mystic():
+	for character in characters:
+		if character.name == "MystCrimson" and character.state == CharState.WAITING_AT_DOOR:
+			character.room = 7
+			character.state = CharState.IDLE
+			character.timer = 0.0
+			emit_signal("characters_updated")
+			emit_signal("myst_crimson_state_changed", character.room, character.state)
+			print("MystCrimson retreated due to flashlight!")
+			break
+			
 func get_myst_crimson_zone() -> String:
 	for character in characters:
 		if character.name == "MystCrimson" and character.state == CharState.WAITING_AT_DOOR:
@@ -240,3 +243,9 @@ func get_myst_crimson_wait_time() -> float:
 		if character.name == "MystCrimson" and character.state == CharState.WAITING_AT_DOOR:
 			return character.wait_time
 	return 0.0
+	
+func reset_myst_crimson_timer():
+	for character in characters:
+		if character.name == "MystCrimson" and character.state == CharState.WAITING_AT_DOOR:
+			character.timer = 0.0
+			print("MystCrimson timer reset")

@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://d0t8qg13bsmp8"]
+
+[node name="WinScreen" type="Node2D" unique_id=1679725688]
+
+[node name="Background" type="ColorRect" parent="." unique_id=841514693]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
