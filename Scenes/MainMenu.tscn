@@ -1,0 +1,68 @@
+[gd_scene format=3 uid="uid://5ki18nmv0vch"]
+
+[ext_resource type="Script" uid="uid://bkkpnia6iiach" path="res://Scenes/MainMenu.gd" id="1_853f1"]
+[ext_resource type="Texture2D" uid="uid://cxf8cefut2qww" path="res://Sprites/2011x_Remodel.webp" id="2_8saeu"]
+[ext_resource type="AudioStream" uid="uid://bl0jf6cib3wk6" path="res://Audio/2011x play my game.mp3" id="3_8saeu"]
+
+[node name="CanvasLayer" type="CanvasLayer" unique_id=1693236544]
+script = ExtResource("1_853f1")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1291535066]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Label" type="Label" parent="." unique_id=1409072992]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -637.0
+offset_top = -358.0
+offset_right = -289.0
+offset_bottom = 59.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 100
+text = "X
+Deadly
+Trails"
+vertical_alignment = 1
+
+[node name="NewGameButton" type="Button" parent="." unique_id=1119805319]
+offset_left = 6.0
+offset_top = 427.0
+offset_right = 269.0
+offset_bottom = 504.0
+theme_override_font_sizes/font_size = 50
+text = "New game"
+
+[node name="ContinueButton" type="Button" parent="." unique_id=1244436380]
+offset_left = -2.0
+offset_top = 528.0
+offset_right = 194.0
+offset_bottom = 605.0
+theme_override_font_sizes/font_size = 50
+text = "Conitue"
+
+[node name="2011x" type="Sprite2D" parent="." unique_id=717041132]
+position = Vector2(906, 511)
+texture = ExtResource("2_8saeu")
+
+[node name="EasterEggButton" type="Button" parent="." unique_id=2085737861]
+modulate = Color(1, 1, 1, 0)
+offset_left = 928.0
+offset_top = 363.0
+offset_right = 958.0
+offset_bottom = 396.0
+theme_override_colors/font_color = Color(0.8745098, 0.8745098, 0.8745098, 0)
+theme_override_colors/font_disabled_color = Color(1, 1, 1, 0)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 0)
+
+[node name="EasterEggSound" type="AudioStreamPlayer" parent="." unique_id=1092001233]
+stream = ExtResource("3_8saeu")

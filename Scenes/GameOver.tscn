@@ -38,3 +38,11 @@ offset_right = 682.0
 offset_bottom = 494.0
 theme_override_font_sizes/font_size = 24
 text = "RESTART"
+
+[node name="MenuButton" type="Button" parent="." unique_id=1182933355]
+offset_left = 563.0
+offset_top = 502.0
+offset_right = 702.0
+offset_bottom = 544.0
+theme_override_font_sizes/font_size = 24
+text = "Main Menu"

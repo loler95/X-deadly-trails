@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Sonicexe.fnaf"
-run/main_scene="uid://s7tle3rt7pp7"
+run/main_scene="uid://5ki18nmv0vch"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
