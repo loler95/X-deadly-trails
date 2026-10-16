@@ -50,6 +50,71 @@ offset_bottom = 605.0
 theme_override_font_sizes/font_size = 50
 text = "Conitue"
 
+[node name="NightSelectPanel" type="Control" parent="." unique_id=808535464]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_left = 218.0
+offset_top = 535.0
+offset_right = 447.0
+offset_bottom = 700.0
+
+[node name="Night1Button" type="Button" parent="NightSelectPanel" unique_id=1839553866]
+layout_mode = 0
+offset_left = 7.0
+offset_top = 5.0
+offset_right = 207.0
+offset_bottom = 45.0
+text = "I trail"
+
+[node name="Night2Button" type="Button" parent="NightSelectPanel" unique_id=484219071]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 50.0
+offset_right = 206.0
+offset_bottom = 90.0
+text = "II trail"
+
+[node name="Night3Button" type="Button" parent="NightSelectPanel" unique_id=1755753651]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 96.0
+offset_right = 208.0
+offset_bottom = 136.0
+text = "III trail"
+
+[node name="Night4Button" type="Button" parent="NightSelectPanel" unique_id=1478478566]
+layout_mode = 0
+offset_left = 7.0
+offset_top = 142.0
+offset_right = 207.0
+offset_bottom = 182.0
+text = "IV trail"
+
+[node name="Night5Button" type="Button" parent="NightSelectPanel" unique_id=1948584100]
+layout_mode = 0
+offset_left = 218.0
+offset_top = 4.0
+offset_right = 418.0
+offset_bottom = 44.0
+text = "V trail"
+
+[node name="Night6Button" type="Button" parent="NightSelectPanel" unique_id=319393548]
+layout_mode = 0
+offset_left = 218.0
+offset_top = 52.0
+offset_right = 418.0
+offset_bottom = 92.0
+text = "VI trail"
+
+[node name="BackButton" type="Button" parent="NightSelectPanel" unique_id=1497002602]
+layout_mode = 0
+offset_left = 219.0
+offset_top = 104.0
+offset_right = 419.0
+offset_bottom = 144.0
+text = "Back"
+
 [node name="2011x" type="Sprite2D" parent="." unique_id=717041132]
 position = Vector2(906, 511)
 texture = ExtResource("2_8saeu")

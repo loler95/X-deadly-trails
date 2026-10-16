@@ -14,10 +14,10 @@ var camera_power_drain := 0.1
 var is_game_over := false
 var game_won := false
 
-# --- Время ночи ---
-var night_duration := 360.0  # 6 минут в секундах (можно уменьшить для теста)
+# --- Время ночи (из GameData) ---
+var night_duration: float
 var time_passed := 0.0
-var start_hour := 12  # 12:00 AM
+var start_hour := 12
 
 # --- Менеджеры ---
 @onready var flashlight_manager = get_node("FlashlightManager")
@@ -25,12 +25,14 @@ var start_hour := 12  # 12:00 AM
 
 # ===== ССЫЛКИ НА УЗЛЫ =====
 @onready var power_label: Label = $UI/PowerLabel
+@onready var time_label: Label = $UI/TimeLabel
+@onready var night_label: Label = $UI/NightLabel if has_node("UI/NightLabel") else null
 @onready var left_door: ColorRect = $World/LeftDoor
 @onready var right_door: ColorRect = $World/RightDoor
 @onready var vent: ColorRect = $World/Vent
 @onready var camera_layer: CanvasLayer = $CameraLayer
 @onready var camera_button: Button = $UI/CameraButton
-@onready var time_label: Label = $UI/TimeLabel
+
 @onready var left_door_sprite: Sprite2D = $LeftDoorSprite
 @onready var right_door_sprite: Sprite2D = $RightDoorSprite
 @onready var vent_sprite: Sprite2D = $VentSprite
@@ -53,9 +55,12 @@ func _ready() -> void:
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 	
-	# --- Инициализация времени ---
+	# --- Берём данные из GameData ---
+	night_duration = GameData.night_duration
 	time_passed = 0.0
 	_update_time_label()
+	if night_label:
+		night_label.text = "Ночь " + str(GameData.current_night)
 	
 	# --- AudioListener2D ---
 	audio_listener = AudioListener2D.new()
@@ -77,29 +82,38 @@ func _ready() -> void:
 	$UI.layer = 1
 	$CameraLayer.layer = 0
 	
-	# --- Добавление персонажей ---
+	# --- Добавление персонажей (скорости из GameData) ---
 	var map = $CameraLayer/Map
 	if map and animatronic_manager:
 		var char1 = map.get_node_or_null("Char2011x")
 		var char2 = map.get_node_or_null("CharMyst")
 		var char3 = map.get_node_or_null("CharImperfect")
-		if char1: animatronic_manager.add_character(char1, 8, 7, "2011x")
-		if char2: animatronic_manager.add_character(char2, 5, 7, "MystCrimson")
-		if char3: animatronic_manager.add_character(char3, 3, 7, "Imperfect")
+		
+		if char1:
+			animatronic_manager.add_character(char1, GameData.get_speed("2011x"), 7, "2011x")
+		if char2:
+			animatronic_manager.add_character(char2, GameData.get_speed("MystCrimson"), 7, "MystCrimson")
+		if char3:
+			animatronic_manager.add_character(char3, GameData.get_speed("Imperfect"), 7, "Imperfect")
+		
 		animatronic_manager.attack_detected.connect(_on_attack_detected)
 		animatronic_manager.myst_crimson_state_changed.connect(_on_myst_state_changed)
+		
+		# --- Отладочный вывод ---
+		print("=== NIGHT ", GameData.current_night, " ===")
+		print("2011x speed: ", GameData.get_speed("2011x"))
+		print("MystCrimson speed: ", GameData.get_speed("MystCrimson"))
+		print("Imperfect speed: ", GameData.get_speed("Imperfect"))
+		print("Night duration: ", GameData.night_duration)
 	else:
 		push_error("Map or AnimatronicsManager not found!")
 
 
-
 # ===== ОСНОВНОЙ ЦИКЛ =====
 func _process(delta: float) -> void:
-	
-	# --- Если игра окончена или выиграна, не обновляем ---
 	if is_game_over or game_won:
 		return
-		
+	
 	# --- Энергия ---
 	var drain = power_drain
 	if left_door_closed: drain += 0.25
@@ -124,29 +138,26 @@ func _process(delta: float) -> void:
 	if animatronic_manager and not is_game_over:
 		animatronic_manager.process_movement(delta)
 
+
 # ===== ОБНОВЛЕНИЕ ЧАСОВ =====
 func _update_time_label():
-	var t# Прогресс ночи (от 0 до 1)
 	var progress = time_passed / night_duration
-	# Игровые минуты: 0..360 (6 часов)
 	var game_minutes = progress * 360.0
-	# Часы (12 + количество полных часов)
 	var hours = 12 + int(game_minutes / 60)
 	var minutes = int(game_minutes) % 60
-	# Корректируем отображение: 12, 1, 2, 3, 4, 5, 6
 	var display_hours = hours if hours <= 12 else hours - 12
-	# Если display_hours == 0 (не может случиться, но на всякий случай)
 	if display_hours == 0:
 		display_hours = 12
 	var time_string = "%02d:%02d" % [display_hours, minutes]
 	time_label.text = time_string
+
 
 # ===== ВЫИГРЫШ =====
 func win_game() -> void:
 	if game_won or is_game_over:
 		return
 	game_won = true
-	print("YOU WIN!")
+	print("YOU WIN! Night ", GameData.current_night, " completed.")
 	var path = "res://Scenes/WinScreen.tscn"
 	var tree = get_tree()
 	if tree:
@@ -156,12 +167,12 @@ func win_game() -> void:
 		if main_loop and main_loop.has_method("change_scene_to_file"):
 			main_loop.call_deferred("change_scene_to_file", path)
 
+
 # ===== СПРАЙТ MYSTIC CRIMSON =====
 func _on_myst_state_changed(room_id: int, state: int):
-	var show_sprite = (state == 2)  # WAITING_AT_DOOR
+	var show_sprite = (state == 2)
 	var sprite: Sprite2D = null
 	
-	# сбрасываем остальные спрайты
 	left_door_sprite.modulate.a = 0.0
 	right_door_sprite.modulate.a = 0.0
 	vent_sprite.modulate.a = 0.0
@@ -177,8 +188,6 @@ func _on_myst_state_changed(room_id: int, state: int):
 			area.monitoring = show_sprite
 			area.monitorable = show_sprite
 		print("MystCrimson sprite in room ", room_id, " visible: ", show_sprite)
-
-
 
 
 # ===== КЛАВИШИ =====
@@ -204,6 +213,7 @@ func _input(event: InputEvent) -> void:
 				KEY_6: _select_camera(6)
 				KEY_7: _select_camera(7)
 
+
 # ===== ДВЕРИ =====
 func _on_left_door_pressed() -> void:
 	left_door_closed = !left_door_closed
@@ -223,6 +233,7 @@ func _on_vent_pressed() -> void:
 	vent.color = Color(0.1, 0.1, 0.1) if vent_closed else Color(0.3, 0.3, 0.3)
 	print("Vent:", "closed" if vent_closed else "open")
 
+
 # ===== КАМЕРЫ =====
 func _toggle_camera_mode() -> void:
 	camera_mode = !camera_mode
@@ -233,6 +244,7 @@ func _select_camera(cam_id: int) -> void:
 	var map = $CameraLayer/Map
 	if map and map.has_method("select_camera"):
 		map.select_camera(cam_id)
+
 
 # ===== ЗВУКИ =====
 func play_alert(pan: float):
@@ -247,12 +259,13 @@ func play_knock(pan: float):
 		knock_sound.position.y = audio_listener.position.y
 		knock_sound.play()
 
+
 # ===== GAME OVER =====
-func _on_attack_detected(character_name: String, defense_type: String) -> void:
+func _on_attack_detected(_character_name: String, _defense_type: String) -> void:
 	if is_game_over or game_won:
 		return
 	is_game_over = true
-	print("GAME OVER! ", character_name, " attacked through ", defense_type)
+	print("GAME OVER! ", _character_name, " attacked through ", _defense_type)
 	game_over()
 
 func game_over() -> void:
